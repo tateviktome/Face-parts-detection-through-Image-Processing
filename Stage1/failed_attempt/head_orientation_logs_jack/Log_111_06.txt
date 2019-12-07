@@ -1,0 +1,4 @@
+Orientation
+-44.99999999513296
+Excentricity
+1.7805915206638752
