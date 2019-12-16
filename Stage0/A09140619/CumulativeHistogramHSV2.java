@@ -15,9 +15,9 @@ public class CumulativeHistogramHSV2 implements PlugInFilter {
         float[] s = new float[101];
         float[] v = new float[101];
 
-        for (int i = 0; i < ip.getHeight(); i++) {
+        for (int k = 0; k < ip.getHeight(); k++) {
             for (int j = 0; j < ip.getWidth(); j++) { 
-                color = new Color(ip.getPixel(j,i));
+                color = new Color(ip.getPixel(j,k));
                 Color.RGBtoHSB (color.getRed(), color.getGreen(), color.getBlue(), hsv);
                 h[(int) (hsv[0] * 360)] = h[(int) (hsv[0] * 360)] + 1;
                 s[(int) (hsv[1] * 100)] = s[(int) (hsv[1] * 100)] + 1;
