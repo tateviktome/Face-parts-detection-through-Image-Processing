@@ -1,52 +1,92 @@
+import ij.ImagePlus;
+import ij.process.ImageProcessor;
+import ij.plugin.filter.PlugInFilter;
+import java.awt.Color;
 import ij.*;
-import ij.process.*;
-import ij.gui.*;
-import java.awt.*;
-import ij.plugin.filter.*;
 
-public class CumulativeHistogram2 implements PlugInFilter {
-
-    double[] reds = new double[256];
-    double[] greens = new double[256];
-    double[] blues = new double[256];
-
-    public int setup (String args, ImagePlus im) {
+public class HSVMapping implements PlugInFilter {
+    public int setup(String args, ImagePlus im) {
         return DOES_RGB;
     }
+    public void run(ImageProcessor ip) {
+        float[] h = new float[360];
+        float[] v = new float[101];
+        float[] s = new float[101];
 
-    public void run (ImageProcessor ip) {
+        float[] href = new float[360];
+        float[] vref = new float[101];
+        float[] sref = new float[101];
+
+        setupHistogram(ip, h, v, s);
+        ImageProcessor referenceImageProcessor = IJ.openImage().getProcessor();
+        setupHistogram(referenceImageProcessor, href, vref, sref);
+
+        double adj_h_value;
+        float[] newIntens = new float[3];
+        float[] hsv = new float[3];
+
         for (int i = 0; i < ip.getHeight(); i++) {
-            for (int j = 0; j < ip.getWidth(); j++) {
-                Color color = new Color(ip.getPixel(j, i));
-                reds[color.getRed()] += 1;
-                blues[color.getBlue()] += 1;
-                greens[color.getGreen()] += 1;
+                for (int j = 0; j < ip.getWidth(); j++) {
+                    Color color = new Color(ip.getPixel(j,i));
+                    Color.RGBtoHSB (color.getRed(), color.getGreen(), color.getBlue(), hsv);
+                    double hVal = h[(int) (hsv[0] * 360)];
+                    double sVal = s[(int) (hsv[1] * 100)];
+                    double vVal = v[(int) (hsv[2] * 100)];
+
+                    double hDiff = 2;
+                    double sDiff = 2;
+                    double vDiff = 2;
+
+                    for (int m = 0; m < 360; m++) {
+                        if (Math.abs(href[m] - hVal) < hDiff) {
+                            hDiff = Math.abs(href[m] - hVal);
+                            newIntens[0] = (float) m / 360;
+                        }
+                    }
+
+                    for (int m = 0; m < 101; m++) {
+                        if (Math.abs(vref[m] - vVal) < vDiff) {
+                            vDiff = Math.abs(vref[m] - vVal);
+                            newIntens[2] = (float) m / 101;
+                        }
+
+                        if (Math.abs(sref[m] - sVal) < sDiff) {
+                            sDiff = Math.abs(sref[m] - sVal);
+                            newIntens[1] = (float) m / 101;
+                        }
+                    }
+                    ip.putPixel(j, i, Color.HSBtoRGB(newIntens[0], newIntens[1], newIntens[2]));
+                }
+        } 
+    }
+    
+    public void setupHistogram(ImageProcessor ip, float[] h, float[] s, float[] v) {
+        float[] hsv = new float[3];
+        Color color;
+
+        for (int i = 0; i < ip.getHeight(); i++) {
+            for (int j = 0; j < ip.getWidth(); j++) { 
+                color = new Color(ip.getPixel(j,i));
+                Color.RGBtoHSB (color.getRed(), color.getGreen(), color.getBlue(), hsv);
+                h[(int) (hsv[0] * 360)] = h[(int) (hsv[0] * 360)] + 1;
+                s[(int) (hsv[1] * 100)] = s[(int) (hsv[1] * 100)] + 1;
+                v[(int) (hsv[2] * 100)] = v[(int) (hsv[2] * 100)] + 1;
             }
         }
-
-        reds[0] = reds[0] / ip.getWidth() * ip.getHeight();
-        greens[0] = greens[0] / ip.getWidth() * ip.getHeight();
-        blues[0] = blues[0] / ip.getWidth() * ip.getHeight();
-
-        for (int i = 1; i < reds.length; i++) {
-            reds[i] = (reds[i] / (ip.getWidth() * ip.getHeight())) + reds[i - 1];
-            greens[i] = (greens[i] / (ip.getWidth() * ip.getHeight())) + greens[i - 1];
-            blues[i] = (blues[i] / (ip.getWidth() * ip.getHeight())) + blues[i - 1];
+        
+        for (int i = 1; i < h.length; i++) {
+            h[i] = h[i - 1] + h[i];
+        } 
+        for (int i = 1; i < s.length; i++) {
+            s[i] = s[i - 1] + s[i];
+            v[i] = v[i - 1] + v[i];
         }
-
-        IJ.log("Reds");
-        for (int i = 0; i < reds.length; i++) {
-            IJ.log(Double.toString(reds[i]));
+        for (int i = 0; i < h.length; i++) {
+            h[i] = h[i] / (ip.getHeight() * ip.getWidth());
         }
-
-        IJ.log("Greens");
-        for (int i = 0; i < greens.length; i++) {
-            IJ.log(Double.toString(greens[i]));
-        }
-
-        IJ.log("Blues");
-        for (int i = 0; i < blues.length; i++) {
-            IJ.log(Double.toString(blues[i]));
+        for (int i = 0; i < s.length; i++) {
+            s[i] = s[i] / (ip.getHeight() * ip.getWidth());
+            v[i] = v[i] / (ip.getHeight() * ip.getWidth());
         }
     }
 }
