@@ -1,4 +1,4 @@
-# Face parts detection using Image Processing techniques
+# Face parts detection through Image Processing
 This is a project done in American University of Armenia for the course Image Proccessing (CS260). For the pdfs, please consider downloading since github doesn't show the whole pdf content. 
 
 Project consists of 3 stages
